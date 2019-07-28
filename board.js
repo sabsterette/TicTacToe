@@ -2,7 +2,7 @@ var canvas = document.getElementById("ticTacToeCanvas");
 var ctx = canvas.getContext("2d");
 canvas.addEventListener("click", onmousedown, false);
 
-var boardSize = 3;
+var boardSize = 5;
 var w = canvas.width / boardSize;
 var board = [];
 
@@ -73,7 +73,6 @@ function getPossibleMoves() {
 
 function selectRandomTile(arr) {
     var index = Math.floor(Math.random() * arr.length);
-    console.log(arr[index]);
     return arr[index];
 }
 
@@ -121,7 +120,6 @@ function checkDiagDown(boardArr) {
     var toMatch = boardArr[0][0].player;
     for (let i = 1; i < boardSize; i++) {
         if (boardArr[i][i].player !== toMatch) {
-            console.log(toMatch);
             return false;
         }
     }
@@ -146,25 +144,20 @@ function checkDiagUp(boardArr) {
 }
 
 function checkForWin(boardArr) {
-    var toMatch = 0;
     for (let j = 0; j < boardSize; j++) {
         if (checkRow(boardArr, j)) {
-            console.log("row");
             return true;
         }
     }
     for (let i = 0; i < boardSize; i++) {
         if (checkCol(boardArr, i)) {
-            console.log("col");
             return true;
         }
     }
     if (checkDiagDown(boardArr)) {
-        console.log("diagdown");
         return true;
     }
     if (checkDiagUp(boardArr)) {
-        console.log("diagup");
         return true;
     }
     return false;
@@ -172,7 +165,6 @@ function checkForWin(boardArr) {
 // player move 
 function onmousedown(event) {
     if (turn % 2 === 1 && !win) {
-        console.log(turn);
         cx = event.x;
         cy = event.y;
         xOnCanvas = cx - canvasX;
@@ -186,21 +178,36 @@ function onmousedown(event) {
         }
         if (turn > 5) {
             if (checkForWin(board)) {
-                console.log("here")
                 turn = 0;
                 win = true;
             }
         }
     }
+    else if (!win && !checkBoardFull()) {
+        console.log("bot turn");
+        botTurn();
+        turn++;
+    }
 }
 
 function botTurn() {
-    var tile = selectRandomTile(getPossibleMoves());
-    console.log("setting")
-    tile.player = 2;
+    let possibleStates = generateGameStates(board);
+    console.log(possibleStates);
+    if (possibleStates[0].getUtility() === 0) {
+        var selectedState = selectRandomTile(possibleStates);
+        let i = selectedState.changedTile.x / w;
+        let j = selectedState.changedTile.y / w;
+        board[i][j].player = 2;
+    }
+    else {
+        // the first one has highest utility
+        // need to apply the changedTile back onto the board's tile
+        let i = possibleStates[0].changedTile.x / w;
+        let j = possibleStates[0].changedTile.y / w;
+        board[i][j].player = 2;
+    }
     if (turn > 5) {
         if (checkForWin(board)) {
-            console.log("bot here")
             turn = 0;
             win = true;
         }
@@ -208,11 +215,11 @@ function botTurn() {
 }
 
 function draw() {
-    if (turn % 2 === 0 && !checkBoardFull() && !win) {
-        console.log("bot turn");
-        botTurn();
-        turn++;
-    }
+    // if (turn % 2 === 0 && !checkBoardFull() && !win) {
+    //     console.log("bot turn");
+    //     botTurn();
+    //     turn++;
+    // }
 
     ctx.clearRect(0, 0, canvas.width, canvas.width);
     for (let i = 0; i < boardSize; i++) {
@@ -221,8 +228,15 @@ function draw() {
         }
     }
 
-    if (checkBoardFull() || win) {
+    if (win) {
         alert("GAME OVER! Winner is: " + winner);
     }
+
+    if (checkBoardFull()) {
+        alert("IZZA TIE")
+    }
+
 }
 setInterval(draw, 100);
+
+
