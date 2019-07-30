@@ -1,30 +1,59 @@
-// MINIMAX BEETCH 
+// Implementation of minimax
+//-----------------------------------------------------------------------
+// create a gamestate class to hold all info about game state
 
-// create a gamestate class  
 class GameState {
-    constructor(currentBoard, changedTile) {
-        // REMEMBER TO CHANGE COPY METHOD IF THIS CHANGED
+    constructor(currentBoard, changedTile, parent) {
         this.currentBoard = currentBoard;
         this.changedTile = changedTile;
         this.utility = 0;
+        this.parent = parent;
+        this.child = [];
     }
     getUtility() {
         return this.utility;
     }
     calculateUtility() {
-        if (checkForWin(this.currentBoard)) {
-            console.log("there was win in" + this.toString())
-            this.utility = this.currentBoard.length * 10;
+        // only calculate utility if it has no child
+        if (this.child.length === 0) {
+            if (checkForWin(this.currentBoard)) {
+                if (winner === 2) {
+                    this.utility = this.currentBoard.length * 10;
+                    console.log("there was win in" + this.toString());
+
+                }
+                if (winner === 1) {
+                    this.utility = -(this.currentBoard.length * 10);
+                    console.log("there was win in" + this.toString());
+
+                }
+            }
+            else {
+                this.utility = 0;
+            }
         }
         else {
-            this.utility = 0;
+            this.child.sort(function (a, b) { return b.getUtility() - a.getUtility() })
+            // console.log("child:" + this.child.toString())
+            // pick minimum if it's player 1 turn 
+            if (turnCopy === 0) {
+                this.utility = this.child[0].getUtility();
+            }
+            else if (turnCopy === 1) {
+                console.log("here")
+                let last = this.child.length - 1;
+                this.utility = this.child[last].getUtility();
+            }
         }
     }
     getChangedTile() {
         return this.utility = this.changedTile;
     }
+    addChild(child) {
+        this.child.push(child);
+    }
 }
-
+// to string method for gamestate for debugging purposes
 GameState.prototype.toString = function gameStateToString() {
     var boardString = "board \n";
     for (let j = 0; j < boardSize; j++) {
@@ -41,21 +70,34 @@ GameState.prototype.toString = function gameStateToString() {
         }
         boardString = boardString.concat("\n");
     }
-    return boardString;
+    return boardString.concat("\n" + this.getUtility());
+}
+//-----------------------------------------------------------------------
+// functions to get info for minimax algorithm
+
+function getPossibleMoves(currentBoard) {
+    var emptyTiles = [];
+    var emptyTileCount = 0;
+    // return an array of tiles that are empty
+    for (let i = 0; i < boardSize; i++) {
+        for (let j = 0; j < boardSize; j++) {
+            if (currentBoard[i][j].player === 0) {
+                emptyTiles[emptyTileCount] = currentBoard[i][j];
+                emptyTileCount++;
+            }
+        }
+    }
+    return emptyTiles;
 }
 
-function generateGameStates(currentBoard) {
+function generateGameStates(gameState) {
     // so we can use the turn number without affecting the actual turn 
-    let turnCopy = Object.assign(turn);
     let allPossibleStates = [];
     let maxUtility = -1000;
-    let possibleMoves = getPossibleMoves();
-    let cx;
-    let cy;
-    let i;
-    let j;
+    let possibleMoves = getPossibleMoves(gameState.currentBoard);
+    let cx, cy, i, j;
     for (let k = 0; k < possibleMoves.length; k++) {
-        let oldBoard = copyBoard(currentBoard);
+        let oldBoard = copyBoard(gameState.currentBoard);
         // get the tile on the grid
         cx = possibleMoves[k].getX();
         cy = possibleMoves[k].getY();
@@ -70,7 +112,10 @@ function generateGameStates(currentBoard) {
             oldBoard[i][j].player = 1;
         }
         let newBoard = copyBoard(oldBoard);
-        let newState = new GameState(newBoard, possibleMoves[k]);
+        // parent state for this is the current gamestate 
+        let newState = new GameState(newBoard, possibleMoves[k], gameState);
+        // console.log(newState.toString())
+        gameState.addChild(newState);
         newState.calculateUtility();
         if (newState.getUtility() > maxUtility) {
             allPossibleStates.unshift(newState);
@@ -82,6 +127,9 @@ function generateGameStates(currentBoard) {
     }
     return allPossibleStates;
 }
+
+//-----------------------------------------------------------------------
+// helper methods used 
 
 function copyTiles(srcTile) {
     let x = Object.assign(srcTile.x);
@@ -100,7 +148,7 @@ function copyBoard(srcBoard) {
     }
     return copyBoard;
 }
-
+// currently not used
 function copyGameState(gameState) {
     let copyBoard = [];
     for (let i = 0; i < gameState.length; i++) {

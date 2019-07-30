@@ -1,18 +1,24 @@
+//-----------------------------------------------------------------------
+
+// get info from HTML code about the canvas
 var canvas = document.getElementById("ticTacToeCanvas");
 var ctx = canvas.getContext("2d");
 canvas.addEventListener("click", onmousedown, false);
 
-var boardSize = 5;
-var w = canvas.width / boardSize;
+const boardSize = 3;
+const w = canvas.width / boardSize;
 var board = [];
 
 var canvasRect = canvas.getBoundingClientRect();
 canvasX = canvasRect.x;
 canvasY = canvasRect.y;
-// sets who's turn it is 
+//-----------------------------------------------------------------------
+// info that game will need to run 
 var turn = 1;
 var winner = 0;
 var win = false;
+let turnCopy = 0;
+//-----------------------------------------------------------------------
 // need tile class to control what shows on each space of the board 
 // x, y are the top left corner of the tile
 class Tile {
@@ -47,7 +53,8 @@ class Tile {
         return this.y;
     }
 }
-
+//-----------------------------------------------------------------------
+// initialising the board for the game
 for (let i = 0; i < boardSize; i++) {
     board[i] = [];
     for (let j = 0; j < boardSize; j++) {
@@ -56,26 +63,13 @@ for (let i = 0; i < boardSize; i++) {
     }
 }
 
-function getPossibleMoves() {
-    var emptyTiles = [];
-    var emptyTileCount = 0;
-    // return an array of tiles that are empty
-    for (let i = 0; i < boardSize; i++) {
-        for (let j = 0; j < boardSize; j++) {
-            if (board[i][j].player === 0) {
-                emptyTiles[emptyTileCount] = board[i][j];
-                emptyTileCount++;
-            }
-        }
-    }
-    return emptyTiles;
-}
+//-----------------------------------------------------------------------
+// functions used in the game mechanics
 
 function selectRandomTile(arr) {
     var index = Math.floor(Math.random() * arr.length);
     return arr[index];
 }
-
 
 function checkBoardFull() {
     for (let i = 0; i < boardSize; i++) {
@@ -191,10 +185,30 @@ function onmousedown(event) {
 }
 
 function botTurn() {
-    let possibleStates = generateGameStates(board);
+    let currentState = new GameState(board)
+    // look ahead 2 states 
+    turnCopy = 0;
+    let possibleStates = generateGameStates(currentState);
+    turnCopy = 1;
+    possibleStates.forEach(state => {
+        generateGameStates(state)
+    });
+    // recalculate state values based on the children's value
+    possibleStates.forEach(state => state.calculateUtility());
+    possibleStates.sort(function (a, b) {
+        return b.getUtility() - a.getUtility()
+    });
     console.log(possibleStates);
+
+    let allZeroStates = [];
+    possibleStates.forEach(state => {
+        if (state.getUtility() === 0) {
+            allZeroStates.push(state);
+        }
+    })
+
     if (possibleStates[0].getUtility() === 0) {
-        var selectedState = selectRandomTile(possibleStates);
+        var selectedState = selectRandomTile(allZeroStates);
         let i = selectedState.changedTile.x / w;
         let j = selectedState.changedTile.y / w;
         board[i][j].player = 2;
@@ -213,6 +227,7 @@ function botTurn() {
         }
     }
 }
+//-----------------------------------------------------------------------
 
 function draw() {
     // if (turn % 2 === 0 && !checkBoardFull() && !win) {
